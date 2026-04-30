@@ -1,0 +1,34 @@
+services:
+  docling:
+    image: ghcr.io/docling-project/docling-serve-cpu:v1.17.0
+    environment:
+      DOCLING_SERVE_ENABLE_UI: "true"
+    ports:
+      - "5001:5001"
+  tika:
+    image: apache/tika:3.2.3.0
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: "8G"
+        reservations:
+          cpus: "4"
+          memory: "8G"
+    restart: always
+  doc-processor:
+    image: doc-processor:latest
+    ports:
+      - "8081:8081"
+    restart: always
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "4"
+          memory: "4G"
+        reservations:
+          cpus: "4"
+          memory: "4G"
+    volumes:
+      - /var/cache/docs
