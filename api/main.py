@@ -28,4 +28,4 @@ async def upload_file(file: UploadFile = File(...)) -> list[dict]:
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="localhost", port=8081)
+    uvicorn.run(app, host="localhost", port=8080)

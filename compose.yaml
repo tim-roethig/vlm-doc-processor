@@ -16,4 +16,4 @@ services:
       - "8080:8080"
     restart: always
     volumes:
-      - ./app/cache:/var/cache/docs
+      - ./api/cache:/var/cache/docs

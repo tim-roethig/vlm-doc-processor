@@ -4,7 +4,7 @@ import logging
 class DocProcessor:
     def __init__(self):
         self.docling_url = "http://docling:5001"
-        self.tika_url = "http://tika:5001"
+        self.tika_url = "http://tika:9998"
 
     def _get_num_pdf_pages(self, file_content: bytes) -> int:
         """
