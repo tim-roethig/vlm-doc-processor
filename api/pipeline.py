@@ -20,7 +20,7 @@ _IMAGE_MD_RE = re.compile(r"!\[[^\]]*\]\((data:image/[^;]+;base64,[^)]+)\)")
 
 
 class DocProcessor:
-    def __init__(self):
+    def __init__(self) -> None:
         self.docling_url = os.environ.get("DOCLING_URL", "http://docling:5001")
         self.tika_url = os.environ.get("TIKA_URL", "http://tika:9998")
         self.docling_timeout = float(os.environ.get("DOCLING_TIMEOUT", "300"))
@@ -32,7 +32,7 @@ class DocProcessor:
             self._client = httpx.AsyncClient()
         return self._client
 
-    async def aclose(self):
+    async def aclose(self) -> None:
         if self._client is not None:
             await self._client.aclose()
             self._client = None
@@ -157,13 +157,10 @@ class DocProcessor:
     async def _try(
         self,
         label: str,
-        func: Callable[[], Awaitable[list[dict]] | list[dict]],
+        func: Callable[[], Awaitable[list[dict]]],
     ) -> list[dict] | None:
         try:
-            result = func()
-            if asyncio.iscoroutine(result):
-                result = await result
-            return result
+            return await func()
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning("%s failed: %s", label, e)
             return None
@@ -171,7 +168,7 @@ class DocProcessor:
     async def process(self, file_content: bytes, filename: str) -> list[dict]:
         filename = filename.lower()
 
-        ladder: list[tuple[str, Callable[[], Awaitable[list[dict]] | list[dict]]]] = []
+        ladder: list[tuple[str, Callable[[], Awaitable[list[dict]]]]] = []
 
         if filename.endswith(".pdf"):
             try:

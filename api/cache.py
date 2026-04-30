@@ -4,14 +4,14 @@ import os
 
 
 class Cache:
-    def __init__(self):
+    def __init__(self) -> None:
         self.cache_dir = "/var/cache/docs"
         os.makedirs(self.cache_dir, exist_ok=True)
 
     def hash_file(self, file_content: bytes) -> str:
         return hashlib.sha256(file_content).hexdigest()
 
-    def write_cache(self, hash_key: str, vlm_content: list[dict]):
+    def write_cache(self, hash_key: str, vlm_content: list[dict]) -> None:
         path = os.path.join(self.cache_dir, f"{hash_key}.json")
         tmp_path = f"{path}.tmp"
         with open(tmp_path, "w", encoding="utf-8") as f:

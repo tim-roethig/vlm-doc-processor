@@ -27,7 +27,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.post("/file2vlm-content")
 async def upload_file(file: UploadFile = File(...)) -> list[dict]:
-    filename = file.filename
+    filename = file.filename or ""
     file_content = await file.read()
 
     hash_key = cache.hash_file(file_content=file_content)
