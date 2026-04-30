@@ -125,6 +125,7 @@ class DocProcessor:
                 ],
                 capture_output=True,
                 timeout=300,
+                check=False,
             )
             if proc.returncode != 0:
                 raise RuntimeError(
@@ -163,7 +164,7 @@ class DocProcessor:
             if asyncio.iscoroutine(result):
                 result = await result
             return result
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning("%s failed: %s", label, e)
             return None
 
@@ -175,7 +176,7 @@ class DocProcessor:
         if filename.endswith(".pdf"):
             try:
                 num_pages = self._get_num_pdf_pages(file_content)
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 logger.warning("Failed to count PDF pages: %s", e)
                 num_pages = None
 
@@ -191,7 +192,7 @@ class DocProcessor:
         elif filename.endswith(".pptx"):
             try:
                 num_slides = self._get_num_ppt_slides(file_content)
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 logger.warning("Failed to count PPTX slides: %s", e)
                 num_slides = None
 

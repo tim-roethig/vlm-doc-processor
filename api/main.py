@@ -17,7 +17,7 @@ cache = Cache()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     yield
     await file_processor.aclose()
 
