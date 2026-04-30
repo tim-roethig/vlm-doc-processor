@@ -6,3 +6,7 @@ pypdf
 pypdfium2
 python-pptx
 Pillow
+
+pylint
+black
+mypy

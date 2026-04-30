@@ -6,7 +6,6 @@ from fastapi import FastAPI, File, UploadFile
 from pipeline import DocProcessor
 from cache import Cache
 
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -45,4 +44,5 @@ async def upload_file(file: UploadFile = File(...)) -> list[dict]:
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8080)

@@ -13,13 +13,10 @@ import pypdfium2 as pdfium
 from pypdf import PdfReader
 from pptx import Presentation
 
-
 logger = logging.getLogger(__name__)
 
 
-_IMAGE_MD_RE = re.compile(
-    r"!\[[^\]]*\]\((data:image/[^;]+;base64,[^)]+)\)"
-)
+_IMAGE_MD_RE = re.compile(r"!\[[^\]]*\]\((data:image/[^;]+;base64,[^)]+)\)")
 
 
 class DocProcessor:
@@ -43,9 +40,9 @@ class DocProcessor:
     def _get_num_pdf_pages(self, file_content: bytes) -> int:
         return len(PdfReader(io.BytesIO(file_content)).pages)
 
-    def _pdf_bytes_to_image_list(self, pdf_bytes: bytes, dpi: int) -> list[dict]:
+    def _pdf_to_image_list(self, file_content: bytes, dpi: int) -> list[dict]:
         scale = dpi / 72
-        pdf = pdfium.PdfDocument(pdf_bytes)
+        pdf = pdfium.PdfDocument(file_content)
         try:
             result: list[dict] = []
             for page in pdf:
@@ -53,16 +50,15 @@ class DocProcessor:
                 buf = io.BytesIO()
                 pil_image.save(buf, format="PNG")
                 b64 = base64.b64encode(buf.getvalue()).decode("ascii")
-                result.append({
-                    "type": "image_url",
-                    "image_url": {"url": f"data:image/png;base64,{b64}"},
-                })
+                result.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{b64}"},
+                    }
+                )
             return result
         finally:
             pdf.close()
-
-    def _pdf_to_image_list(self, file_content: bytes, dpi: int) -> list[dict]:
-        return self._pdf_bytes_to_image_list(file_content, dpi)
 
     async def _docling_convert(self, file_content: bytes, filename: str) -> list[dict]:
         client = await self._get_client()
@@ -80,11 +76,7 @@ class DocProcessor:
         response.raise_for_status()
         payload = response.json()
 
-        markdown = (
-            payload.get("document", {}).get("md_content")
-            or payload.get("md_content")
-            or ""
-        )
+        markdown = payload.get("document", {}).get("md_content") or payload.get("md_content") or ""
         if not markdown:
             raise ValueError("Docling returned an empty markdown document")
 
@@ -94,14 +86,16 @@ class DocProcessor:
         result: list[dict] = []
         cursor = 0
         for match in _IMAGE_MD_RE.finditer(md):
-            text_segment = md[cursor:match.start()].strip()
+            text_segment = md[cursor : match.start()].strip()
             if text_segment:
                 result.append({"type": "text", "text": text_segment})
             data_url = match.group(1)
-            result.append({
-                "type": "image_url",
-                "image_url": {"url": data_url},
-            })
+            result.append(
+                {
+                    "type": "image_url",
+                    "image_url": {"url": data_url},
+                }
+            )
             cursor = match.end()
 
         tail = md[cursor:].strip()
@@ -146,7 +140,7 @@ class DocProcessor:
 
     def _ppt_to_image_list(self, file_content: bytes, dpi: int) -> list[dict]:
         pdf_bytes = self._pptx_bytes_to_pdf_bytes(file_content)
-        return self._pdf_bytes_to_image_list(pdf_bytes, dpi)
+        return self._pdf_to_image_list(pdf_bytes, dpi)
 
     async def _tika_convert(self, file_content: bytes) -> list[dict]:
         client = await self._get_client()
@@ -187,13 +181,12 @@ class DocProcessor:
 
             if num_pages is not None and num_pages < 16:
                 ladder.append(
-                    ("pdf-image-render", lambda: asyncio.to_thread(
-                        self._pdf_to_image_list, file_content, 150
-                    ))
+                    (
+                        "pdf-image-render",
+                        lambda: asyncio.to_thread(self._pdf_to_image_list, file_content, 150),
+                    )
                 )
-            ladder.append(
-                ("docling", lambda: self._docling_convert(file_content, filename))
-            )
+            ladder.append(("docling", lambda: self._docling_convert(file_content, filename)))
 
         elif filename.endswith(".pptx"):
             try:
@@ -204,18 +197,15 @@ class DocProcessor:
 
             if num_slides is not None and num_slides < 32:
                 ladder.append(
-                    ("pptx-image-render", lambda: asyncio.to_thread(
-                        self._ppt_to_image_list, file_content, 120
-                    ))
+                    (
+                        "pptx-image-render",
+                        lambda: asyncio.to_thread(self._ppt_to_image_list, file_content, 120),
+                    )
                 )
-            ladder.append(
-                ("docling", lambda: self._docling_convert(file_content, filename))
-            )
+            ladder.append(("docling", lambda: self._docling_convert(file_content, filename)))
 
         elif filename.endswith(".docx"):
-            ladder.append(
-                ("docling", lambda: self._docling_convert(file_content, filename))
-            )
+            ladder.append(("docling", lambda: self._docling_convert(file_content, filename)))
 
         ladder.append(("tika", lambda: self._tika_convert(file_content)))
 
