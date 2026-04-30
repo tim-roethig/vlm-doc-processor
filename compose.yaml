@@ -7,28 +7,13 @@ services:
       - "5001:5001"
   tika:
     image: apache/tika:3.2.3.0
-    deploy:
-      resources:
-        limits:
-          cpus: "4"
-          memory: "8G"
-        reservations:
-          cpus: "4"
-          memory: "8G"
+    ports:
+      - "9998:9998"
     restart: always
   doc-processor:
     build: ./api
     ports:
-      - "8081:8081"
+      - "8080:8080"
     restart: always
-    deploy:
-      replicas: 1
-      resources:
-        limits:
-          cpus: "4"
-          memory: "4G"
-        reservations:
-          cpus: "4"
-          memory: "4G"
     volumes:
-      - /var/cache/docs
+      - ./app/cache:/var/cache/docs

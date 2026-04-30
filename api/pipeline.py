@@ -117,7 +117,7 @@ class DocProcessor:
                 return self._ppt_to_image_list(file_content, dpi=120)
 
             # Unified fallback for word & large PDF/PPTX
-            if filename.endswith((",docx", ".pdf", ".pptx")):
+            if filename.endswith((".docx", ".pdf", ".pptx")):
                 return await self._docling_convert(file_content)
 
             # Default fallback for unsupported formats
