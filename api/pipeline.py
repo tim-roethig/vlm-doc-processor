@@ -1,10 +1,15 @@
+import os
 import logging
 
 
 class DocProcessor:
     def __init__(self):
-        self.docling_url = "http://docling:5001"
-        self.tika_url = "http://tika:9998"
+        self.docling_url = os.environ.get("DOCLING_URL", "http://docling:5001")
+        self.tika_url = os.environ.get("TIKA_URL", "http://tika:9998")
+        self.pdf_dpi = os.environ.get("PDF_DPI", 150)
+        self.pp_dpi = os.environ.get("PP_DPI", 120)
+        self.max_direct_input_pdf_pages = os.environ.get("MAX_DIRECT_INPUT_PDF_PAGES", 16)
+        self.max_direct_input_pp_slides = os.environ.get("MAX_DIRECT_INPUT_PP_SLIDES", 32)
 
     def _get_num_pdf_pages(self, file_content: bytes) -> int:
         """
@@ -28,7 +33,7 @@ class DocProcessor:
         """
         pass
 
-    async def _docling_convert(self, file_content: bytes) -> list[dict]:
+    def _docling_convert(self, file_content: bytes) -> list[dict]:
         """
         Convert a file to Markdown using the docling serve API with images embedded as base64.
 
@@ -95,7 +100,7 @@ class DocProcessor:
         ]
         """
 
-    async def _tika_convert(self, file_content: bytes) -> list[dict]:
+    def _tika_convert(self, file_content: bytes) -> list[dict]:
         """
         Fallback converter using Apache Tika to cover remaining file types.
         :param file_content: A file uploaded via FastAPI
@@ -104,26 +109,26 @@ class DocProcessor:
         file_content = "TBD"
         return [{"type": "text", "text": file_content}]
 
-    async def process(self, file_content: bytes, filename: str) -> list[dict]:
+    def process(self, file_content: bytes, filename: str) -> list[dict]:
         try:
             filename = filename.lower()
             
             # Early return for small PDFs
-            if filename.endswith(".pdf") and self._get_num_pdf_pages(file_content) < 16:
-                return self._pdf_to_image_list(file_content, dpi=150)
+            if filename.endswith(".pdf") and self._get_num_pdf_pages(file_content) < self.max_direct_input_pdf_pages:
+                return self._pdf_to_image_list(file_content, dpi=self.pdf_dpi)
 
             # Early return for small PPTXs
-            if filename.endswith(".pptx") and self._get_num_ppt_slides(file_content) < 32:
-                return self._ppt_to_image_list(file_content, dpi=120)
+            if filename.endswith(".pptx") and self._get_num_ppt_slides(file_content) < self.max_direct_input_pp_slides:
+                return self._ppt_to_image_list(file_content, dpi=self.pp_dpi)
 
             # Unified fallback for word & large PDF/PPTX
             if filename.endswith((".docx", ".pdf", ".pptx")):
-                return await self._docling_convert(file_content)
+                return self._docling_convert(file_content)
 
             # Default fallback for unsupported formats
-            return await self._tika_convert(file_content)
+            return self._tika_convert(file_content)
 
         except Exception as e:
             # Log the error for debugging while gracefully falling back
             logging.warning(f"Document processing failed, falling back to Tika: {e}")
-            return await self._tika_convert(file_content)
+            return self._tika_convert(file_content)
