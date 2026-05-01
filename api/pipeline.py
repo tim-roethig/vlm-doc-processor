@@ -179,6 +179,17 @@ class DocProcessor:
         return [{"type": "text", "text": r.text}]
 
     def process(self, file_content: bytes, filename: str) -> list[dict]:
+        """
+        Convert a document to VLM content, dispatching by file type and size.
+
+        Small PDFs and PPTXs are rendered directly to images; larger PDFs, PPTXs
+        and DOCX go through docling; anything else falls back to Tika. Any
+        failure in the preferred path also falls back to Tika.
+
+        :param file_content: The raw bytes of the uploaded file.
+        :param filename: The original filename, used for extension dispatch.
+        :return: A list of dictionaries in the form of a VLM content input.
+        """
         try:
             filename = filename.lower()
 
@@ -205,5 +216,5 @@ class DocProcessor:
 
         except Exception as e:
             # Log the error for debugging while gracefully falling back
-            logging.warning(f"Document processing failed, falling back to Tika: {e}")
+            logging.warning("Document processing failed, falling back to Tika: %s", e)
             return self._tika_convert(file_content)

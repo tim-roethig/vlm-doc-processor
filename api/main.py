@@ -12,6 +12,10 @@ cache = Cache()
 
 @app.post("/file2vlm-content")
 async def upload_file(file: UploadFile = File(...)) -> list[dict]:
+    """
+    Convert an uploaded document to VLM content, using a SHA-256 cache to
+    skip reprocessing for files that have already been seen.
+    """
     filename = file.filename
     file_content = await file.read()
 
