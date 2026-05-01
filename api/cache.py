@@ -25,7 +25,7 @@ class Cache:
         """
         path = os.path.join(self.cache_dir, f"{hash_key}.json")
         tmp_path = path + ".tmp"
-        with open(tmp_path, "w") as f:
+        with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(vlm_content, f)
         os.replace(tmp_path, path)
 
@@ -39,5 +39,5 @@ class Cache:
         path = os.path.join(self.cache_dir, f"{hash_key}.json")
         if not os.path.exists(path):
             return None
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
