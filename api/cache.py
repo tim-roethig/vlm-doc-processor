@@ -1,3 +1,5 @@
+import hashlib
+import json
 import os
 
 
@@ -12,7 +14,7 @@ class Cache:
         :param file_content:
         :return:
         """
-        pass
+        return hashlib.sha256(file_content).hexdigest()
 
     def write_cache(self, hash_key: str, vlm_content: list[dict]):
         """
@@ -21,7 +23,11 @@ class Cache:
         :param vlm_content:
         :return:
         """
-        pass
+        path = os.path.join(self.cache_dir, f"{hash_key}.json")
+        tmp_path = path + ".tmp"
+        with open(tmp_path, "w") as f:
+            json.dump(vlm_content, f)
+        os.replace(tmp_path, path)
 
     def read_cache(self, hash_key: str) -> None | list[dict]:
         """
@@ -30,4 +36,8 @@ class Cache:
         :param hash_key:
         :return:
         """
-        pass
+        path = os.path.join(self.cache_dir, f"{hash_key}.json")
+        if not os.path.exists(path):
+            return None
+        with open(path, "r") as f:
+            return json.load(f)

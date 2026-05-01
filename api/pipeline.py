@@ -1,5 +1,14 @@
-import os
+import base64
+import io
 import logging
+import os
+import re
+import subprocess
+import tempfile
+
+import fitz
+import httpx
+from pptx import Presentation
 
 
 class DocProcessor:
@@ -17,7 +26,8 @@ class DocProcessor:
         :param file_content:
         :return:
         """
-        pass
+        with fitz.open(stream=file_content, filetype="pdf") as doc:
+            return doc.page_count
 
     def _pdf_to_image_list(self, file_content: bytes, dpi: int) -> list[dict]:
         """
@@ -31,7 +41,18 @@ class DocProcessor:
             ...
         ]
         """
-        pass
+        out: list[dict] = []
+        with fitz.open(stream=file_content, filetype="pdf") as doc:
+            for page in doc:
+                png_bytes = page.get_pixmap(dpi=dpi).tobytes("png")
+                b64 = base64.b64encode(png_bytes).decode("ascii")
+                out.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{b64}"},
+                    }
+                )
+        return out
 
     def _docling_convert(self, file_content: bytes) -> list[dict]:
         """
@@ -46,7 +67,16 @@ class DocProcessor:
             ...
         ]
         """
-        markdown = "TBD"
+        files = [("files", ("doc.bin", file_content, "application/octet-stream"))]
+        data = [("to_formats", "md"), ("image_export_mode", "embedded")]
+        r = httpx.post(
+            f"{self.docling_url}/v1/convert/file",
+            files=files,
+            data=data,
+            timeout=300,
+        )
+        r.raise_for_status()
+        markdown = r.json()["document"]["md_content"]
         return self._markdown_to_vlm_content(markdown)
 
     def _markdown_to_vlm_content(self, md: str) -> list[dict]:
@@ -77,7 +107,17 @@ class DocProcessor:
             ...
         ]
         """
-        pass
+        pattern = re.compile(r"!\[[^\]]*\]\((data:image/[^;]+;base64,[^)]+)\)")
+        parts = pattern.split(md)
+        out: list[dict] = []
+        for i, segment in enumerate(parts):
+            if i % 2 == 0:
+                text = segment.strip()
+                if text:
+                    out.append({"type": "text", "text": text})
+            else:
+                out.append({"type": "image_url", "image_url": {"url": segment}})
+        return out
 
     def _get_num_ppt_slides(self, file_content: bytes) -> int:
         """
@@ -85,7 +125,7 @@ class DocProcessor:
         :param file_content:
         :return:
         """
-        pass
+        return len(Presentation(io.BytesIO(file_content)).slides)
 
     def _ppt_to_image_list(self, file_content: bytes, dpi: int) -> list[dict]:
         """
@@ -99,6 +139,29 @@ class DocProcessor:
             ...
         ]
         """
+        with tempfile.TemporaryDirectory() as tmp:
+            in_path = os.path.join(tmp, "input.pptx")
+            with open(in_path, "wb") as f:
+                f.write(file_content)
+            profile_uri = f"file://{tmp}/lo-profile"
+            subprocess.run(
+                [
+                    "soffice",
+                    f"-env:UserInstallation={profile_uri}",
+                    "--headless",
+                    "--convert-to",
+                    "pdf",
+                    "--outdir",
+                    tmp,
+                    in_path,
+                ],
+                check=True,
+                timeout=120,
+                capture_output=True,
+            )
+            with open(os.path.join(tmp, "input.pdf"), "rb") as f:
+                pdf_bytes = f.read()
+        return self._pdf_to_image_list(pdf_bytes, dpi=dpi)
 
     def _tika_convert(self, file_content: bytes) -> list[dict]:
         """
@@ -106,8 +169,14 @@ class DocProcessor:
         :param file_content: A file uploaded via FastAPI
         :return: A string containing the file content.
         """
-        file_content = "TBD"
-        return [{"type": "text", "text": file_content}]
+        r = httpx.put(
+            f"{self.tika_url}/tika",
+            content=file_content,
+            headers={"Accept": "text/plain"},
+            timeout=120,
+        )
+        r.raise_for_status()
+        return [{"type": "text", "text": r.text}]
 
     def process(self, file_content: bytes, filename: str) -> list[dict]:
         try:
