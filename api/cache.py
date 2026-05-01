@@ -1,6 +1,10 @@
+import os
+
+
 class Cache:
     def __init__(self):
-        self.cache_dir = "/var/cache/docs"
+        self.cache_dir = os.environ.get("CACHE_DIR", "/var/cache/docs")
+        os.makedirs(self.cache_dir, exist_ok=True)
 
     def hash_file(self, file_content: bytes) -> str:
         """

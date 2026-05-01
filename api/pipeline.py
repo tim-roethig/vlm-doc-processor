@@ -112,13 +112,19 @@ class DocProcessor:
     def process(self, file_content: bytes, filename: str) -> list[dict]:
         try:
             filename = filename.lower()
-            
+
             # Early return for small PDFs
-            if filename.endswith(".pdf") and self._get_num_pdf_pages(file_content) < self.max_direct_input_pdf_pages:
+            if (
+                filename.endswith(".pdf")
+                and self._get_num_pdf_pages(file_content) < self.max_direct_input_pdf_pages
+            ):
                 return self._pdf_to_image_list(file_content, dpi=self.pdf_dpi)
 
             # Early return for small PPTXs
-            if filename.endswith(".pptx") and self._get_num_ppt_slides(file_content) < self.max_direct_input_pp_slides:
+            if (
+                filename.endswith(".pptx")
+                and self._get_num_ppt_slides(file_content) < self.max_direct_input_pp_slides
+            ):
                 return self._ppt_to_image_list(file_content, dpi=self.pp_dpi)
 
             # Unified fallback for word & large PDF/PPTX
