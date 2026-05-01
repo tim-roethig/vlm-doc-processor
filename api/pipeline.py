@@ -6,10 +6,10 @@ class DocProcessor:
     def __init__(self):
         self.docling_url = os.environ.get("DOCLING_URL", "http://docling:5001")
         self.tika_url = os.environ.get("TIKA_URL", "http://tika:9998")
-        self.pdf_dpi = os.environ.get("PDF_DPI", 150)
-        self.pp_dpi = os.environ.get("PP_DPI", 120)
-        self.max_direct_input_pdf_pages = os.environ.get("MAX_DIRECT_INPUT_PDF_PAGES", 16)
-        self.max_direct_input_pp_slides = os.environ.get("MAX_DIRECT_INPUT_PP_SLIDES", 32)
+        self.pdf_dpi = int(os.environ.get("PDF_DPI", 150))
+        self.pp_dpi = int(os.environ.get("PP_DPI", 120))
+        self.max_direct_input_pdf_pages = int(os.environ.get("MAX_DIRECT_INPUT_PDF_PAGES", 16))
+        self.max_direct_input_pp_slides = int(os.environ.get("MAX_DIRECT_INPUT_PP_SLIDES", 32))
 
     def _get_num_pdf_pages(self, file_content: bytes) -> int:
         """
@@ -116,14 +116,14 @@ class DocProcessor:
             # Early return for small PDFs
             if (
                 filename.endswith(".pdf")
-                and self._get_num_pdf_pages(file_content) < self.max_direct_input_pdf_pages
+                and self._get_num_pdf_pages(file_content) <= self.max_direct_input_pdf_pages
             ):
                 return self._pdf_to_image_list(file_content, dpi=self.pdf_dpi)
 
             # Early return for small PPTXs
             if (
                 filename.endswith(".pptx")
-                and self._get_num_ppt_slides(file_content) < self.max_direct_input_pp_slides
+                and self._get_num_ppt_slides(file_content) <= self.max_direct_input_pp_slides
             ):
                 return self._ppt_to_image_list(file_content, dpi=self.pp_dpi)
 

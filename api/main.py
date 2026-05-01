@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, UploadFile
+from fastapi.concurrency import run_in_threadpool
 
 from pipeline import DocProcessor
 from cache import Cache
@@ -14,13 +15,15 @@ async def upload_file(file: UploadFile = File(...)) -> list[dict]:
     filename = file.filename
     file_content = await file.read()
 
-    hash_key = cache.hash_file(file_content=file_content)
+    hash_key = await run_in_threadpool(cache.hash_file, file_content=file_content)
 
     vlm_content = cache.read_cache(hash_key)
     if vlm_content:
         return vlm_content
 
-    vlm_content = file_processor.process(file_content=file_content, filename=filename)
+    vlm_content = await run_in_threadpool(
+        file_processor.process, file_content=file_content, filename=filename
+    )
     cache.write_cache(hash_key=hash_key, vlm_content=vlm_content)
 
     return vlm_content
@@ -29,4 +32,4 @@ async def upload_file(file: UploadFile = File(...)) -> list[dict]:
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="localhost", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8080)
