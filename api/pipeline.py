@@ -67,8 +67,8 @@ class DocProcessor:
             ...
         ]
         """
-        files = [("files", ("doc.bin", file_content, "application/octet-stream"))]
-        data = [("to_formats", "md"), ("image_export_mode", "embedded")]
+        files = {"files": ("doc.bin", file_content, "application/octet-stream")}
+        data = {"to_formats": "md", "image_export_mode": "embedded"}
         r = httpx.post(
             f"{self.docling_url}/v1/convert/file",
             files=files,
