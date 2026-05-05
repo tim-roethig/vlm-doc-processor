@@ -1,3 +1,5 @@
+from typing import Annotated, Literal, Union
+from pydantic import BaseModel, Field
 from fastapi import FastAPI, File, UploadFile
 from fastapi.concurrency import run_in_threadpool
 
@@ -9,11 +11,26 @@ app = FastAPI()
 file_processor = DocProcessor()
 cache = Cache()
 
+class TextContent(BaseModel):
+    type: Literal["text"]
+    text: str
 
-@app.post("/file2vlm-content")
-async def upload_file(file: UploadFile = File(...)) -> list[dict]:
+class ImageUrl(BaseModel):
+    url: str
+
+class ImageContent(BaseModel):
+    type: Literal["image_url"]
+    image_url: ImageUrl
+
+VLMContent = Annotated[
+    Union[TextContent, ImageContent],
+    Field(discriminator="type"),
+]
+
+@app.post("/file2vlm-content", response_model=list[VLMContent])
+async def upload_file(file: UploadFile = File(...)):
     """
-    Convert an uploaded document to VLM content, using a SHA-256 cache to
+    Convert an uploaded document to VLM content, using an SHA-256 cache to
     skip reprocessing for files that have already been seen.
     """
     filename = file.filename or ""

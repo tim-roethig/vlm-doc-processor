@@ -23,7 +23,7 @@ It bundles three services in `compose.yaml`:
 Bring everything up with Docker Compose:
 
 ```bash
-docker compose up --build
+docker compose up -d --build --force-recreate
 ```
 
 Once the stack is healthy, send a file to the API:
